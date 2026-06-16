@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────
+# DFW Apartment Tracker — configuration
+# Edit this file to change what gets tracked. No code changes needed.
+# ─────────────────────────────────────────────────────────────
+
+search:
+  # Areas to search on the aggregator. Each becomes its own search URL.
+  # Format that Apartments.com understands: "city-state_zip"
+  areas:
+    - "addison-tx"
+    - "plano-tx"
+  bedrooms: 1            # 1-bedroom only
+  max_rent: 1600         # ignore anything above this when scraping (wide net)
+  radius_miles: 5
+
+filters:
+  # A unit must pass ALL of these to show as "recommended" on the dashboard.
+  alert_max_rent: 1000   # email me when a qualifying unit is at/below this
+  min_rating: 3.8        # minimum review rating (out of 5)
+  min_safety_score: 6.0  # minimum neighborhood safety score (out of 10); see safety_map
+
+# Specific properties to ALWAYS track directly (proof-of-concept + favorites).
+# These are scraped from the property's own listing page as a fallback that is
+# more reliable than the big aggregators.
+target_properties:
+  - name: "Neo at Midtown"
+    city: "Addison"
+    zip: "75001"
+    # Apartments.com slug — update if it changes.
+    apartments_url: "https://www.apartments.com/neo-at-midtown-addison-tx/"
+
+# Neighborhood safety scores (0-10, higher = safer).
+# Starter dataset for the Addison/Plano submarket. Refine these from real crime
+# data (see README → "Plugging in real crime data"). Anything not listed gets
+# the `default` score.
+safety_map:
+  default: 5.0
+  "75001": 7.5   # Addison
+  "75254": 7.0   # Far North Dallas / Addison border
+  "75240": 6.5   # North Dallas (Galleria)
+  "75248": 7.5   # North Dallas (Hillcrest/Arapaho)
+  "75252": 8.0   # Far North Dallas (Frankford)
+  "75023": 8.0   # Plano W
+  "75024": 8.5   # West Plano (Legacy)
+  "75025": 8.5   # West Plano
+  "75074": 6.5   # East Plano
+  "75075": 7.5   # Central Plano
+  "75093": 9.0   # West Plano (top-rated)
+  "75287": 7.0   # Far North Dallas
+
+email:
+  enabled: true
+  provider: "resend"          # uses RESEND_API_KEY env var
+  from_address: "alerts@yourdomain.dev"   # must be a Resend-verified sender
+  to_address: "maulik737@gmail.com"

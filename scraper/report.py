@@ -1,0 +1,137 @@
+"""Render the GitHub Pages dashboard (docs/index.html) from the listings."""
+from __future__ import annotations
+import json
+import os
+from datetime import datetime
+from typing import List, Dict
+from .sources.base import Listing
+from . import storage
+
+DOCS = os.path.join(os.path.dirname(__file__), "..", "docs")
+
+
+def render(listings: List[Listing], cfg: Dict) -> str:
+    os.makedirs(DOCS, exist_ok=True)
+    now = datetime.now().strftime("%a %b %d, %Y %I:%M %p")
+    cap = cfg["filters"]["alert_max_rent"]
+
+    cards = ""
+    for l in listings:
+        hist = storage.series(l.unit_id)
+        spark = json.dumps([hist[d] for d in sorted(hist)])
+        cards += _card(l, spark)
+
+    rec = sum(1 for l in listings if l.recommended)
+    html = _PAGE.format(
+        now=now, cap=cap, total=len(listings), rec=rec, cards=cards,
+    )
+    out = os.path.join(DOCS, "index.html")
+    with open(out, "w", encoding="utf-8") as fh:
+        fh.write(html)
+    return out
+
+
+def _card(l: Listing, spark_json: str) -> str:
+    flags = ""
+    if l.days_tracked == 1:
+        flags += '<span class="flag new">🆕 JUST LISTED</span>'
+    if l.is_lowest_ever and l.days_tracked and l.days_tracked > 1:
+        flags += '<span class="flag low">⭐ lowest ever</span>'
+    if l.recommended:
+        flags += '<span class="flag rec">✅ recommended</span>'
+
+    chg = ""
+    if l.price_change is not None:
+        cls = "down" if l.price_change < 0 else ("up" if l.price_change > 0 else "flat")
+        sym = "▼" if l.price_change < 0 else ("▲" if l.price_change > 0 else "—")
+        chg = f'<span class="chg {cls}">{sym} ${abs(l.price_change)} vs prev</span>'
+
+    notes = ""
+    if l.alerts:
+        notes = '<ul class="notes">' + "".join(f"<li>{a}</li>" for a in l.alerts) + "</ul>"
+
+    border = "var(--ok)" if l.recommended else "var(--line)"
+    return f"""
+    <div class="card" style="border-left-color:{border}">
+      <div class="row1">
+        <div class="name">{l.property_name}</div>
+        <div class="rent">${l.rent or '—'}</div>
+      </div>
+      <div class="addr">{l.address}</div>
+      <div class="meta">
+        <span>⭐ {l.rating if l.rating is not None else '–'}</span>
+        <span>🛡 {l.safety_score}/10 safety</span>
+        <span>📅 tracked {l.days_tracked or 1}d</span>
+        {chg}
+      </div>
+      <div class="flags">{flags}</div>
+      <canvas class="spark" data-points='{spark_json}' width="280" height="40"></canvas>
+      {notes}
+      <a class="btn" href="{l.url}" target="_blank" rel="noopener">View listing →</a>
+    </div>"""
+
+
+_PAGE = """<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DFW Apartment Tracker — Addison / Plano</title>
+<style>
+:root{{--bg:#0f172a;--panel:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--line:#334155;
+--ok:#22c55e;--down:#22c55e;--up:#ef4444;--accent:#60a5fa;}}
+*{{box-sizing:border-box}}
+body{{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif}}
+header{{padding:28px 20px;border-bottom:1px solid var(--line)}}
+h1{{margin:0;font-size:22px}}
+.sub{{color:var(--muted);font-size:14px;margin-top:6px}}
+.stats{{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}}
+.stat{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}}
+.stat b{{font-size:20px}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:20px;max-width:1200px;margin:0 auto}}
+.card{{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--line);
+border-radius:12px;padding:16px}}
+.row1{{display:flex;justify-content:space-between;align-items:baseline;gap:8px}}
+.name{{font-weight:600;font-size:16px}}
+.rent{{font-size:24px;font-weight:700;color:var(--accent)}}
+.addr{{color:var(--muted);font-size:13px;margin:4px 0 10px}}
+.meta{{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--ink)}}
+.chg.down{{color:var(--down)}} .chg.up{{color:var(--up)}} .chg.flat{{color:var(--muted)}}
+.flags{{margin:10px 0;display:flex;gap:6px;flex-wrap:wrap}}
+.flag{{font-size:11px;padding:3px 8px;border-radius:999px;font-weight:600}}
+.flag.new{{background:#7c2d12;color:#fed7aa}} .flag.low{{background:#713f12;color:#fde68a}}
+.flag.rec{{background:#14532d;color:#bbf7d0}}
+.notes{{margin:8px 0;padding-left:18px;color:#fca5a5;font-size:12px}}
+.btn{{display:inline-block;margin-top:8px;background:var(--accent);color:#0b1220;
+text-decoration:none;font-weight:600;padding:8px 14px;border-radius:8px}}
+.spark{{display:block;margin:8px 0}}
+footer{{color:var(--muted);font-size:12px;padding:20px;text-align:center}}
+</style></head>
+<body>
+<header>
+  <h1>🏠 DFW Apartment Tracker — Addison / Plano</h1>
+  <div class="sub">1-bedroom units · alert threshold ${cap} · updated {now}</div>
+  <div class="stats">
+    <div class="stat"><b>{total}</b><br>tracked</div>
+    <div class="stat"><b>{rec}</b><br>recommended</div>
+    <div class="stat"><b>${cap}</b><br>alert cap</div>
+  </div>
+</header>
+<div class="grid">{cards}</div>
+<footer>Prices reset most mornings via revenue-management software (RealPage/Yieldstar/LRO).
+A 🆕 unit is most likely at its floor price — signing same-day gives the best shot at the lowest base rent.
+Always verify on the listing page before applying.</footer>
+<script>
+document.querySelectorAll('canvas.spark').forEach(c=>{{
+  let pts;try{{pts=JSON.parse(c.dataset.points)}}catch(e){{pts=[]}}
+  if(pts.length<2){{c.style.display='none';return}}
+  const ctx=c.getContext('2d'),w=c.width,h=c.height,pad=4;
+  const mn=Math.min(...pts),mx=Math.max(...pts),rng=(mx-mn)||1;
+  ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;ctx.beginPath();
+  pts.forEach((v,i)=>{{const x=pad+i*(w-2*pad)/(pts.length-1);
+    const y=h-pad-((v-mn)/rng)*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}});
+  ctx.stroke();
+  const last=pts[pts.length-1];ctx.fillStyle=last<=mn?'#22c55e':'#94a3b8';
+  const lx=w-pad,ly=h-pad-((last-mn)/rng)*(h-2*pad);
+  ctx.beginPath();ctx.arc(lx,ly,3,0,7);ctx.fill();
+}});
+</script>
+</body></html>"""

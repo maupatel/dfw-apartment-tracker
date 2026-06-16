@@ -1,0 +1,39 @@
+name: Daily apartment scrape
+
+on:
+  schedule:
+    # 13:15 UTC ≈ 8:15 AM Central — after morning price resets. Adjust as needed.
+    - cron: "15 13 * * *"
+  workflow_dispatch: {}   # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write   # to commit updated price history + dashboard
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DASHBOARD_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          # Set SCRAPER_MOCK to "1" here if you want to test the pipeline without live scraping.
+          SCRAPER_MOCK: "0"
+        run: python -m scraper.main
+
+      - name: Commit history + dashboard
+        run: |
+          git config user.name "apartment-bot"
+          git config user.email "bot@users.noreflect.github.com"
+          git add data/history.json docs/index.html
+          git commit -m "Daily update: $(date -u +%Y-%m-%d)" || echo "No changes"
+          git push
