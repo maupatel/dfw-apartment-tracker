@@ -2,7 +2,8 @@
   "mock-0": {
     "prices": {
       "2026-06-16": 985,
-      "2026-06-17": 985
+      "2026-06-17": 985,
+      "2026-06-18": 985
     },
     "property_name": "Neo at Midtown",
     "url": "https://www.apartments.com/neo-at-midtown-addison-tx/"
@@ -10,7 +11,8 @@
   "mock-1": {
     "prices": {
       "2026-06-16": 1140,
-      "2026-06-17": 1140
+      "2026-06-17": 1140,
+      "2026-06-18": 1140
     },
     "property_name": "The Mansions at Spring Creek",
     "url": "https://www.apartments.com/"
@@ -18,7 +20,8 @@
   "mock-2": {
     "prices": {
       "2026-06-16": 955,
-      "2026-06-17": 955
+      "2026-06-17": 955,
+      "2026-06-18": 955
     },
     "property_name": "Addison Keller Springs",
     "url": "https://www.apartments.com/"
@@ -26,7 +29,8 @@
   "mock-3": {
     "prices": {
       "2026-06-16": 1320,
-      "2026-06-17": 1320
+      "2026-06-17": 1320,
+      "2026-06-18": 1320
     },
     "property_name": "Legacy West Residences",
     "url": "https://www.apartments.com/"
@@ -34,7 +38,8 @@
   "mock-4": {
     "prices": {
       "2026-06-16": 950,
-      "2026-06-17": 950
+      "2026-06-17": 950,
+      "2026-06-18": 950
     },
     "property_name": "Prairie Creek Villas",
     "url": "https://www.apartments.com/"
@@ -42,7 +47,8 @@
   "mock-5": {
     "prices": {
       "2026-06-16": 999,
-      "2026-06-17": 999
+      "2026-06-17": 999,
+      "2026-06-18": 999
     },
     "property_name": "Vista North Dallas",
     "url": "https://www.apartments.com/"
